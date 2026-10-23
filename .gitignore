@@ -1,0 +1,40 @@
+# Virtual environments and build output
+.venv/
+build/
+dist/
+release/
+*.spec.bak
+
+# Test artefacts (the suite is configured to keep its temp data local)
+.pytest-tmp/
+.pytest_cache/
+__pycache__/
+*.py[cod]
+.coverage
+htmlcov/
+
+# Local application data (never committed)
+*.db
+*.db-wal
+*.db-shm
+*.log
+bridge.token
+portable.txt
+
+# Signing material — must never be committed
+*.pfx
+*.p12
+*.cer
+*.key
+
+# Agent workspace data
+.workbuddy-ai/
+
+# OS noise
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Editors
+.vscode/
+.idea/

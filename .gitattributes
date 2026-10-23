@@ -1,0 +1,23 @@
+# Normalise line endings so the repository does not churn on Windows.
+* text=auto
+
+*.py    text eol=lf
+*.md    text eol=lf
+*.json  text eol=lf
+*.js    text eol=lf
+*.html  text eol=lf
+*.toml  text eol=lf
+*.spec  text eol=lf
+*.txt   text eol=lf
+.gitignore     text eol=lf
+.gitattributes text eol=lf
+
+# PowerShell and batch files are consumed by Windows tooling.
+*.ps1   text eol=crlf
+*.cmd   text eol=crlf
+
+# Binaries
+*.png   binary
+*.ico   binary
+*.exe   binary
+*.zip   binary

@@ -1,0 +1,7 @@
+# SmartSort runtime dependencies.
+#
+# Everything here is permissively licensed and works fully offline:
+#   PySide6 (Qt for Python) - LGPL-3.0 / commercial dual license
+#
+# There is no networking, telemetry or AI dependency by design.
+PySide6>=6.6,<7

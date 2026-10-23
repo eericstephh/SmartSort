@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "SmartSort Companion",
+  "short_name": "SmartSort",
+  "version": "1.0.0",
+  "description": "Sends completed download events to the SmartSort desktop app so downloads can be sorted into date and type folders.",
+  "minimum_chrome_version": "102",
+  "permissions": [
+    "downloads",
+    "nativeMessaging",
+    "storage",
+    "alarms"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "SmartSort",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

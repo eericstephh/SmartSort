@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>SmartSort</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #ffffff;
+        --surface: #f5f6f8;
+        --border: #e3e6ea;
+        --text: #1a1d23;
+        --muted: #6b7280;
+        --accent: #2563eb;
+        --ok-bg: #dcfce7;
+        --ok-fg: #15803d;
+        --warn-bg: #fef3c7;
+        --warn-fg: #b45309;
+        --err-bg: #fee2e2;
+        --err-fg: #b91c1c;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #1e2129;
+          --surface: #262a33;
+          --border: #2c313b;
+          --text: #e8eaee;
+          --muted: #98a1ae;
+          --accent: #4f8cff;
+          --ok-bg: #14361f;
+          --ok-fg: #86efac;
+          --warn-bg: #3a2c10;
+          --warn-fg: #fcd34d;
+          --err-bg: #3a1717;
+          --err-fg: #fca5a5;
+        }
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        width: 330px;
+        font-family: "Segoe UI", system-ui, sans-serif;
+        font-size: 13px;
+        background: var(--bg);
+        color: var(--text);
+      }
+      header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--border);
+      }
+      header img { width: 22px; height: 22px; }
+      header h1 { font-size: 14px; margin: 0; font-weight: 600; flex: 1; }
+      .pill {
+        font-size: 11px;
+        font-weight: 600;
+        padding: 2px 9px;
+        border-radius: 9px;
+        background: var(--surface);
+        color: var(--muted);
+        white-space: nowrap;
+      }
+      .pill.ok { background: var(--ok-bg); color: var(--ok-fg); }
+      .pill.warn { background: var(--warn-bg); color: var(--warn-fg); }
+      .pill.err { background: var(--err-bg); color: var(--err-fg); }
+      section { padding: 12px 14px; }
+      .row { display: flex; gap: 8px; margin-bottom: 10px; }
+      .row:last-child { margin-bottom: 0; }
+      .label { color: var(--muted); min-width: 78px; }
+      .value {
+        flex: 1;
+        word-break: break-all;
+        font-size: 12px;
+        line-height: 1.4;
+      }
+      .value.mono { font-family: Consolas, monospace; font-size: 11px; }
+      button {
+        font: inherit;
+        font-size: 12px;
+        padding: 7px 12px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        color: var(--text);
+        cursor: pointer;
+      }
+      button.primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #fff;
+        font-weight: 600;
+        width: 100%;
+      }
+      button:hover { filter: brightness(0.97); }
+      ul { list-style: none; margin: 0; padding: 0; }
+      li {
+        display: flex;
+        gap: 8px;
+        align-items: baseline;
+        padding: 5px 0;
+        border-bottom: 1px solid var(--border);
+        font-size: 12px;
+      }
+      li:last-child { border-bottom: none; }
+      li .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      li .state { color: var(--muted); font-size: 11px; white-space: nowrap; }
+      .empty { color: var(--muted); font-size: 12px; }
+      footer { padding: 0 14px 14px; }
+      .hint { color: var(--muted); font-size: 11px; line-height: 1.5; margin-top: 10px; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <img src="icons/icon48.png" alt="" />
+      <h1>SmartSort</h1>
+      <span id="status" class="pill">Checking…</span>
+    </header>
+
+    <section>
+      <div class="row">
+        <span class="label">Destination</span>
+        <span id="destination" class="value">—</span>
+      </div>
+      <div class="row">
+        <span class="label">Extension ID</span>
+        <span id="extension-id" class="value mono">—</span>
+      </div>
+    </section>
+
+    <section>
+      <div class="label" style="margin-bottom: 6px">Recent downloads</div>
+      <ul id="history">
+        <li class="empty">Nothing reported yet.</li>
+      </ul>
+    </section>
+
+    <footer>
+      <button id="test" class="primary">Test connection</button>
+      <p class="hint" id="hint">
+        The desktop app must be running. Files are moved only after a download
+        finishes.
+      </p>
+    </footer>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

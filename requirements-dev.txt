@@ -1,0 +1,9 @@
+# Development, testing and packaging dependencies.
+#
+#   pip install -r requirements-dev.txt
+#
+-r requirements.txt
+
+pytest>=8.0
+pytest-qt>=4.4
+pyinstaller>=6.3
