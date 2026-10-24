@@ -58,7 +58,7 @@ dist\SmartSort-1.0.0-portable.zip     unzip anywhere, data stays with it
 dist\SmartSort-Setup-1.0.0.exe        installer with shortcuts and an uninstaller
 ```
 
-Published builds are attached to the [releases](https://github.com/hosseynsae16-wq/SmartSort/releases) page. Every
+Published builds are attached to the [releases](https://github.com/eericstephh/SmartSort/releases) page. Every
 release carries a `SHA256SUMS.txt`; check a download before running it:
 
 ```powershell
