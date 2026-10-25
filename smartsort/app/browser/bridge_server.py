@@ -208,6 +208,9 @@ class BridgeServer:
 
     def stop(self, timeout: float = 2.0) -> None:
         self._stop.set()
+        thread = self._thread
+        if thread is not None and thread.is_alive():
+            self._wake()
         listener = self._listener
         self._listener = None
         if listener is not None:
@@ -215,10 +218,15 @@ class BridgeServer:
                 listener.close()
             except Exception:  # pragma: no cover - defensive
                 logger.debug("listener close failed", exc_info=True)
-        thread = self._thread
         self._thread = None
         if thread is not None and thread.is_alive():
             thread.join(timeout)
+            if thread.is_alive():  # pragma: no cover - defensive
+                # A thread still parked in accept() outlives the interpreter and
+                # crashes the process at exit, so this is worth a loud log line.
+                logger.warning(
+                    "bridge accept thread did not stop within %.1fs", timeout
+                )
         with self._clients_lock:
             clients = list(self._clients)
         for client_thread in clients:
@@ -235,6 +243,37 @@ class BridgeServer:
             return self._connection_count
 
     # -- internals ---------------------------------------------------------
+    def _wake(self, timeout: float = 0.5) -> None:
+        """Make a thread parked in ``accept()`` return.
+
+        Closing the listener does not reliably unblock ``accept()`` on Windows,
+        so the accept thread would outlive ``stop()`` and still be inside native
+        code when the interpreter exits, which crashes the process after a fully
+        green run. One throwaway connection ends the wait.
+
+        The connect runs on its own thread because ``Client()`` blocks until the
+        server answers the challenge, and nothing answers while the accept loop
+        is busy serving somebody else.
+        """
+
+        def connect() -> None:
+            try:
+                connection = Client(
+                    self._pipe_name, family="AF_PIPE", authkey=self._authkey
+                )
+            except Exception:  # pragma: no cover - defensive
+                return
+            try:
+                connection.close()
+            except Exception:  # pragma: no cover - defensive
+                pass
+
+        waker = threading.Thread(
+            target=connect, name="smartsort-bridge-wake", daemon=True
+        )
+        waker.start()
+        waker.join(timeout)
+
     def _accept_loop(self) -> None:
         while not self._stop.is_set():
             listener = self._listener
@@ -251,6 +290,15 @@ class BridgeServer:
                 break
             except Exception:  # pragma: no cover - defensive
                 logger.exception("unexpected bridge accept failure")
+                break
+
+            if self._stop.is_set():
+                # stop() woke this thread up with a throwaway connection; it is
+                # not a client, so it must not be served.
+                try:
+                    connection.close()
+                except Exception:  # pragma: no cover - defensive
+                    pass
                 break
 
             thread = threading.Thread(

@@ -33,6 +33,19 @@ All notable changes to SmartSort are documented here. The format follows
 - `migrations.apply(conn, target=…)` applied migrations past the requested
   target; the parameter only guarded against a database that was too new. A
   caller asking for version 1 got version 2. Found by the new upgrade test.
+- **`BridgeServer.stop()` could leave its accept thread running.** Closing the
+  listener does not reliably wake a thread blocked in `accept()` on Windows, so
+  the thread outlived the server and was still inside native code when the
+  process exited — an access violation at shutdown, after everything had already
+  succeeded. `stop()` now wakes the loop with one throwaway connection and warns
+  if the thread still refuses to end. The same leak made `stop()` wait out its
+  full timeout on every call.
+- **The test suite crashed on exit roughly half the time.** Every screen the UI
+  tests build stayed referenced, so the process ended with dozens of live Qt
+  widgets that CPython then destroyed while finalising the PySide6 bindings.
+  The session now closes them while Qt is still healthy, and the suite fails
+  with a named message if a worker thread outlives the tests instead of dying
+  with an unexplained exit code. Verified over eight consecutive runs.
 
 ## [1.0.0] — 2026-10-22
 

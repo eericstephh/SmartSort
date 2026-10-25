@@ -119,6 +119,39 @@ def test_bridge_roundtrip_over_named_pipe(pipe_name: str, tmp_path: Path) -> Non
     assert [m["type"] for m in received] == ["ping", "status"]
 
 
+def test_stop_leaves_no_bridge_thread_behind(pipe_name: str, tmp_path: Path) -> None:
+    """A stopped server must not keep a thread parked in accept().
+
+    accept() blocks until somebody connects, so closing the listener is not
+    enough to end the loop. A surviving thread is still inside native code when
+    the interpreter shuts down, which takes the whole process down with an
+    access violation after a fully green run.
+    """
+    import threading
+
+    token = ensure_token(tmp_path / "bridge.token")
+    server = BridgeServer(pipe_name, token, lambda message: {"ok": True})
+    server.start()
+    before = {t for t in threading.enumerate() if t.name == "smartsort-bridge"}
+    assert before, "the server should have started a thread"
+
+    server.stop()
+
+    alive = {
+        t for t in threading.enumerate() if t.name == "smartsort-bridge" and t.is_alive()
+    }
+    assert not (before & alive), "stop() left the accept thread running"
+
+
+def test_stop_is_idempotent(pipe_name: str, tmp_path: Path) -> None:
+    token = ensure_token(tmp_path / "bridge.token")
+    server = BridgeServer(pipe_name, token, lambda message: {"ok": True})
+    server.start()
+    server.stop()
+    server.stop()
+    assert server.is_running is False
+
+
 def test_bridge_rejects_a_wrong_token(pipe_name: str, tmp_path: Path) -> None:
     from multiprocessing.connection import AuthenticationError, Client
 

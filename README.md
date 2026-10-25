@@ -279,7 +279,7 @@ executed, and what is still unproven is in
 ```
 
 The suite never touches your real Downloads folder: every filesystem test uses
-a temporary directory. All 342 tests pass.
+a temporary directory. All 344 tests pass.
 
 What cannot be automated — loading the unpacked extension into a real browser
 and completing a real download — is written up as a step-by-step checklist in

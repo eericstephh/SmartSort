@@ -258,7 +258,7 @@ not certification. The tests listed in §10 are the part you can re-run yourself
 | Uninstall keeps user data unless asked | `test_silent_uninstall_keeps_settings_and_history`, `test_purge_removes_settings_and_history` |
 | A failed uninstall dialog deletes nothing | `test_dialog_failure_removes_nothing`, `test_dialog_cancel_does_nothing` |
 
-Full suite: **342 passed**.
+Full suite: **344 passed**.
 
 ## 11. Hardening checklist for a cautious user
 
