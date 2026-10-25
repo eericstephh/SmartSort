@@ -1,6 +1,6 @@
 # SmartSort — implementation report
 
-Version 1.0.0 · built and verified on Windows with Python 3.13.14, PySide6 6.12.0,
+Version 1.1.0 · built and verified on Windows with Python 3.13.14, PySide6 6.12.0,
 pytest 9.1.1, PyInstaller 6.22.3.
 
 This report states what was built, what was actually executed, and what is still
@@ -262,7 +262,7 @@ successful uninstall.
 ## 4. Tests executed and actual results
 
 ```
-344 passed in 23.17s
+344 passed in 29.12s
 ```
 
 Run with `.venv\Scripts\python.exe -m pytest -q`. Every filesystem test uses a
@@ -302,15 +302,25 @@ result. Actual output of the final run:
 1. starting the packaged application
    bridge is listening
 2. asking the packaged native host for a ping
-   response: {'ok': True, 'app': 'SmartSort', 'version': '1.0.0', 'ready': True,
+   response: {'ok': True, 'app': 'SmartSort', 'version': '1.1.0', 'ready': True,
               'paused': False, 'destination': '...\\SmartSortDest', 'protocolVersion': 1}
 3. reporting a completed download through the host
    response: {'ok': True, 'status': 'organized', 'message': 'moved_by_rename',
-              'finalPath': '...\\SmartSortDest\\2026-10-21\\Images\\holiday-photo.jpg',
+              'finalPath': '...\\SmartSortDest\\2026-10-26\\Images\\holiday-photo.jpg',
               'category': 'images', 'operationId': 1}
-   moved to: 2026-10-21\Images\holiday-photo.jpg
+   moved to: 2026-10-26\Images\holiday-photo.jpg
 4. verifying the operation was persisted
    history row #1 recorded
+5. scanning an existing folder through the packaged executable
+   2 of 3 previewed, nothing moved
+6. adding a user category and scanning with it
+   created category 'subtitles'
+   the packaged scanner classified into 'subtitles'
+7. sending the same bytes twice with duplicate detection on
+   response: {'ok': True, 'status': 'content_duplicate',
+              'message': 'content_already_exists', 'category': 'images',
+              'operationId': 2}
+   recognised as a duplicate and left untouched
 
 PASS - packaged build works end to end
 ```
@@ -348,7 +358,7 @@ Running `--scan` afterwards created `data\smartsort.db`, `data\logs\` and
 `data\bridge.token`, confirming that the marker moves *all* state and not just
 the path reported by `--print-paths`.
 
-**Installer.** `SmartSort-Setup-1.0.0.exe /S --no-shortcuts /D=<temp>` was
+**Installer.** `SmartSort-Setup-1.1.0.exe /S --no-shortcuts /D=<temp>` was
 executed against a throwaway folder:
 
 - exit code 0, 263 files extracted, including `uninstall.exe`.

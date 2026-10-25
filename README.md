@@ -56,15 +56,15 @@ mover.
 Two artifacts are produced, both per-user and both without administrator rights:
 
 ```
-dist\SmartSort-1.0.0-portable.zip     unzip anywhere, data stays with it
-dist\SmartSort-Setup-1.0.0.exe        installer with shortcuts and an uninstaller
+dist\SmartSort-1.1.0-portable.zip     unzip anywhere, data stays with it
+dist\SmartSort-Setup-1.1.0.exe        installer with shortcuts and an uninstaller
 ```
 
 Published builds are attached to the [releases](https://github.com/eericstephh/SmartSort/releases) page. Every
 release carries a `SHA256SUMS.txt`; check a download before running it:
 
 ```powershell
-Get-FileHash .\SmartSort-1.0.0-portable.zip -Algorithm SHA256
+Get-FileHash .\SmartSort-1.1.0-portable.zip -Algorithm SHA256
 ```
 
 Build both from source with:
@@ -80,7 +80,7 @@ attach to a GitHub release, plus the checksums and the release notes taken from
 
 ### Option A — portable
 
-Unzip `SmartSort-1.0.0-portable.zip` and run `SmartSort.exe`. The folder contains
+Unzip `SmartSort-1.1.0-portable.zip` and run `SmartSort.exe`. The folder contains
 `portable.txt`, which keeps the database, logs and bridge token in a `data`
 subfolder beside the executable instead of `%LOCALAPPDATA%` — so the whole thing
 can live on a USB stick and carry its history. Delete `portable.txt` to switch
@@ -88,13 +88,13 @@ back to the per-user location.
 
 ### Option B — installer
 
-Run `SmartSort-Setup-1.0.0.exe`. It installs to
+Run `SmartSort-Setup-1.1.0.exe`. It installs to
 `%LOCALAPPDATA%\Programs\SmartSort`, offers Start menu and desktop shortcuts, and
 registers itself in *Settings → Apps*. Silent mode:
 
 ```powershell
-.\SmartSort-Setup-1.0.0.exe /S
-.\SmartSort-Setup-1.0.0.exe /S /D="D:\Apps\SmartSort" --no-shortcuts
+.\SmartSort-Setup-1.1.0.exe /S
+.\SmartSort-Setup-1.1.0.exe /S /D="D:\Apps\SmartSort" --no-shortcuts
 ```
 
 Remove it from *Settings → Apps → SmartSort → Uninstall*, or run

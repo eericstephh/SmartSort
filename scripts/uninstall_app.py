@@ -24,7 +24,7 @@ import tempfile
 from pathlib import Path
 
 APP_NAME = "SmartSort"
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.1.0"
 EXE_NAME = "SmartSort.exe"
 UNINSTALL_KEY = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\SmartSort"
 RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"

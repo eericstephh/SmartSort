@@ -8,7 +8,7 @@ Qt or Windows-specific modules.
 from __future__ import annotations
 
 APP_NAME = "SmartSort"
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.1.0"
 APP_PUBLISHER = "SmartSort Project"
 APP_DESCRIPTION = "Local-first download organizer for Windows"
 APP_HOMEPAGE = "https://github.com/eericstephh/SmartSort"

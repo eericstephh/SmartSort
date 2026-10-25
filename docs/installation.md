@@ -22,7 +22,7 @@ and neither writes to `Program Files`.
 
 Both are per-user: no administrator rights, nothing written to `Program Files`.
 
-|  | `SmartSort-1.0.0-portable.zip` | `SmartSort-Setup-1.0.0.exe` |
+|  | `SmartSort-1.1.0-portable.zip` | `SmartSort-Setup-1.1.0.exe` |
 |---|---|---|
 | Installs to | wherever you unzip it | `%LOCALAPPDATA%\Programs\SmartSort` |
 | Data lives in | a `data` folder beside the exe | `%LOCALAPPDATA%\SmartSort` |
@@ -32,7 +32,7 @@ Both are per-user: no administrator rights, nothing written to `Program Files`.
 
 ### A1. Portable
 
-Unzip `SmartSort-1.0.0-portable.zip`. You get a single folder:
+Unzip `SmartSort-1.1.0-portable.zip`. You get a single folder:
 
 ```
 SmartSort\
@@ -57,16 +57,16 @@ Check it any time with:
 
 ### A2. Installer
 
-Run `SmartSort-Setup-1.0.0.exe`. It asks for a folder (default
+Run `SmartSort-Setup-1.1.0.exe`. It asks for a folder (default
 `%LOCALAPPDATA%\Programs\SmartSort`), whether to create shortcuts, and whether
 to start the app afterwards. No elevation prompt appears.
 
 Silent installation, for a script:
 
 ```powershell
-.\SmartSort-Setup-1.0.0.exe /S
-.\SmartSort-Setup-1.0.0.exe /S /D="D:\Apps\SmartSort"
-.\SmartSort-Setup-1.0.0.exe /S /D="D:\Apps\SmartSort" --no-shortcuts
+.\SmartSort-Setup-1.1.0.exe /S
+.\SmartSort-Setup-1.1.0.exe /S /D="D:\Apps\SmartSort"
+.\SmartSort-Setup-1.1.0.exe /S /D="D:\Apps\SmartSort" --no-shortcuts
 ```
 
 | Option | Effect |

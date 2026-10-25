@@ -92,6 +92,10 @@ def main() -> int:
 
     context = create_context(data_dir, setup_logs=False)
     context.settings.destination_dir = str(destination)
+    # On from the start: a file organized while the option was off is stored
+    # without a hash, so it cannot be matched later. Turning the option on only
+    # protects downloads that arrive after it.
+    context.settings.set("skip_duplicate_content", True)
     context.close()
 
     env = dict(os.environ)
@@ -229,6 +233,76 @@ def main() -> int:
         assert "2 of 3 files can be organized" in out, out
         assert (scan_dir / "invoice.pdf").exists(), "a scan must not move files"
         print("   2 of 3 previewed, nothing moved")
+
+        print("6. adding a user category and scanning with it")
+        # ``srt`` is not claimed by any built-in category, so the new one wins it.
+        # (An extension that documents/images/... already own stays theirs.)
+        context = create_context(data_dir, setup_logs=False)
+        try:
+            category_id = context.repos.categories.create("Subtitles", ["srt"])
+            print(f"   created category {category_id!r}")
+        finally:
+            context.close()
+
+        notes_dir = data_dir / "SubtitleInbox"
+        notes_dir.mkdir(exist_ok=True)
+        (notes_dir / "episode-01.srt").write_bytes(b"1\n00:00:01,000 --> 00:00:02,000\nhi\n")
+
+        completed = subprocess.run(
+            [str(GUI), "--data-dir", str(data_dir), "--scan", str(notes_dir)],
+            capture_output=True,
+            text=True,
+            timeout=180,
+            env=env,
+            check=False,
+        )
+        assert completed.returncode == 0, f"scan failed: {completed.stderr}"
+        assert category_id in completed.stdout, (
+            f"the packaged scanner ignored the user category:\n{completed.stdout}"
+        )
+        print(f"   the packaged scanner classified into {category_id!r}")
+
+        print("7. sending the same bytes twice with duplicate detection on")
+        again = downloads / "holiday-photo-copy.jpg"
+        # Same content as the file step 3 already organized, different name.
+        again.write_bytes(b"\xff\xd8\xff\xe0 fake jpeg payload")
+
+        host = subprocess.Popen(
+            [str(HOST), "--data-dir", str(data_dir)],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+        )
+        try:
+            write_frame(
+                host.stdin,
+                {
+                    "type": "download_completed",
+                    "protocolVersion": PROTOCOL_VERSION,
+                    "browser": "chrome",
+                    "download": {
+                        "id": f"e2e-dup-{stamp}",
+                        "filename": str(again),
+                        "state": "complete",
+                        "totalBytes": again.stat().st_size,
+                        "exists": True,
+                    },
+                },
+            )
+            response = read_frame(host.stdout)
+        finally:
+            try:
+                host.stdin.close()
+            except OSError:
+                pass
+            host.wait(timeout=20)
+
+        print(f"   response: {response}")
+        assert response.get("status") == "content_duplicate", (
+            f"the duplicate was not recognised: {response}"
+        )
+        assert again.exists(), "a content duplicate must be left where it is"
+        print("   recognised as a duplicate and left untouched")
 
         print("")
         print("PASS - packaged build works end to end")

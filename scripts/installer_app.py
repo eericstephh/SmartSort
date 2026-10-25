@@ -31,7 +31,7 @@ from pathlib import Path
 from typing import Callable
 
 APP_NAME = "SmartSort"
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.1.0"
 APP_PUBLISHER = "SmartSort"
 EXE_NAME = "SmartSort.exe"
 UNINSTALL_EXE = "uninstall.exe"

@@ -4,7 +4,7 @@ All notable changes to SmartSort are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.1.0] — 2026-10-26
 
 ### Added
 
@@ -14,7 +14,9 @@ All notable changes to SmartSort are documented here. The format follows
   `content_duplicate`, with the path of the existing copy kept in the history.
   A duplicate is only reported when the earlier file is still on disk, and an
   undone operation stops counting. Hashing is skipped entirely while the setting
-  is off, so nothing gets slower for users who do not want it.
+  is off, so nothing gets slower for users who do not want it. The flip side is
+  that files sorted before the option was enabled carry no hash and cannot be
+  matched, which the setting's own help text says.
 - **User-defined categories.** The Rules & categories screen can now add a
   category with its own name and extensions, and rename or delete the ones you
   created. Names are validated against the Windows folder rules (reserved device
