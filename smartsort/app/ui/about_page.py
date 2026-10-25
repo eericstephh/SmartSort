@@ -19,7 +19,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from ..config.defaults import APP_VERSION
+from ..config.defaults import APP_HOMEPAGE, APP_VERSION
 from ..i18n import t
 from .theme import Palette
 from .widgets import Card, MutedLabel, Pill, SectionTitle, title_block
@@ -67,6 +67,18 @@ class AboutPage(QWidget):
         row.addWidget(QLabel(f"{t('about.license')}:"), 0)
         row.addWidget(QLabel(LICENSE_NAME), 1)
         card.add_layout(row)
+
+        # A user who wants to report a bug or check for a newer build should not
+        # have to guess the URL: the About screen is the only place that can
+        # tell them where this copy came from.
+        project_row = QHBoxLayout()
+        project_row.addWidget(QLabel(f"{t('about.project_page')}:"), 0)
+        self._project_link = QLabel(f'<a href="{APP_HOMEPAGE}">{APP_HOMEPAGE}</a>')
+        self._project_link.setOpenExternalLinks(True)
+        self._project_link.setTextInteractionFlags(Qt.TextBrowserInteraction)
+        self._project_link.setWordWrap(True)
+        project_row.addWidget(self._project_link, 1)
+        card.add_layout(project_row)
         self._data_dir_label = MutedLabel(str(self._controller.data_dir))
         self._data_dir_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
         card.add(self._data_dir_label)

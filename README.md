@@ -35,6 +35,7 @@ mover.
 | **Never loses the source** | Cross-volume moves copy → verify → atomically rename → only then delete the source. |
 | **Records everything** | Every move is written to SQLite with both paths, size, category, timestamps and status. |
 | **Can undo** | One click restores a file to where it came from, without overwriting anything. |
+| **Can leave out what you already have** | Optional: hashes each download and skips the ones whose content is already sorted, recording them as duplicates instead of filing a second copy. Off by default. |
 | **Works with Chrome and Edge** | A Manifest V3 extension reports finished downloads through a native messaging host. |
 | **Works without the extension** | A fallback folder watcher handles any browser or download manager. |
 | **Handles what is already there** | Scan an existing folder, see where every file would land, then choose what to move. Nothing moves without confirmation. |
@@ -277,7 +278,7 @@ executed, and what is still unproven is in
 ```
 
 The suite never touches your real Downloads folder: every filesystem test uses
-a temporary directory. All 293 tests pass.
+a temporary directory. All 312 tests pass.
 
 What cannot be automated — loading the unpacked extension into a real browser
 and completing a real download — is written up as a step-by-step checklist in

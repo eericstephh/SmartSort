@@ -38,6 +38,8 @@ class Operation:
     message: str | None = None
     undo_state: str = "available"
     undo_at: str | None = None
+    content_hash: str | None = None
+    duplicate_of: str | None = None
 
     @classmethod
     def from_row(cls, row: Any) -> "Operation":
@@ -57,6 +59,8 @@ class Operation:
             message=row["message"] if "message" in keys else None,
             undo_state=row["undo_state"] if "undo_state" in keys else "available",
             undo_at=row["undo_at"] if "undo_at" in keys else None,
+            content_hash=row["content_hash"] if "content_hash" in keys else None,
+            duplicate_of=row["duplicate_of"] if "duplicate_of" in keys else None,
         )
 
 

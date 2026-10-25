@@ -79,8 +79,24 @@ def _v1(conn: sqlite3.Connection) -> None:
         conn.execute(statement)
 
 
+def _v2(conn: sqlite3.Connection) -> None:
+    """Content hashes, so a re-downloaded file can be recognised.
+
+    ``duplicate_of`` stores the path of the operation that already owns the
+    content, so the history can say *where* the other copy is instead of just
+    reporting that one exists.
+    """
+    conn.execute("ALTER TABLE operations ADD COLUMN content_hash TEXT")
+    conn.execute("ALTER TABLE operations ADD COLUMN duplicate_of TEXT")
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_operations_content_hash"
+        " ON operations (content_hash)"
+    )
+
+
 MIGRATIONS: list[tuple[int, Callable[[sqlite3.Connection], None]]] = [
     (1, _v1),
+    (2, _v2),
 ]
 
 
@@ -121,7 +137,7 @@ def apply(conn: sqlite3.Connection, target: int = SCHEMA_VERSION) -> int:
             f"database schema version {version} is newer than the supported version {target}"
         )
     for number, step in MIGRATIONS:
-        if number <= version:
+        if number <= version or number > target:
             continue
         logger.info("applying schema migration %s", number)
         conn.execute("BEGIN IMMEDIATE")

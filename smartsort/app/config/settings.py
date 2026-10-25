@@ -79,6 +79,10 @@ class SettingsService:
     def allow_move_from_browser_default(self) -> bool:
         return bool(self.get("allow_move_from_browser_default", True))
 
+    @property
+    def skip_duplicate_content(self) -> bool:
+        return bool(self.get("skip_duplicate_content", False))
+
     # -- watcher -----------------------------------------------------------
     @property
     def watch_enabled(self) -> bool:

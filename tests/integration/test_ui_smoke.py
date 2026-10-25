@@ -106,3 +106,24 @@ def test_categories_page_lists_all_categories(window, qtbot) -> None:
     page = main_window._pages["categories"]
     qtbot.wait(20)
     assert page._table.rowCount() == 7
+
+
+def test_about_page_shows_the_project_link(window) -> None:
+    """A user who wants to report a bug needs a URL that actually resolves."""
+    from smartsort.app.config.defaults import APP_HOMEPAGE
+
+    main_window, _controller = window
+    page = main_window._pages["about"]
+    assert APP_HOMEPAGE in page._project_link.text()
+    assert page._project_link.openExternalLinks() is True
+
+
+def test_skip_duplicates_toggle_follows_the_stored_setting(window) -> None:
+    main_window, controller = window
+    page = main_window._pages["settings"]
+
+    assert page._skip_duplicates.is_checked() is False
+
+    controller.settings.set("skip_duplicate_content", True)
+    page.load()
+    assert page._skip_duplicates.is_checked() is True

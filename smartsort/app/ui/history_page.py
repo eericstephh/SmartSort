@@ -27,7 +27,15 @@ from .theme import Palette, pill_colors
 from .widgets import Card, MutedLabel, title_block
 from .workers import TaskRunner
 
-STATUS_FILTERS = ("", "organized", "failed", "skipped", "duplicate", "undone")
+STATUS_FILTERS = (
+    "",
+    "organized",
+    "failed",
+    "skipped",
+    "duplicate",
+    "content_duplicate",
+    "undone",
+)
 
 
 class HistoryPage(QWidget):

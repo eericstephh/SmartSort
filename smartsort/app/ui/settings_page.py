@@ -109,6 +109,14 @@ class SettingsPage(QWidget):
             lambda value: self._update({"allow_move_from_browser_default": value})
         )
         card.add(self._allow_browser_move)
+
+        self._skip_duplicates = SwitchRow(
+            t("settings.skip_duplicates"), t("settings.skip_duplicates_help")
+        )
+        self._skip_duplicates.toggled.connect(
+            lambda value: self._update({"skip_duplicate_content": value})
+        )
+        card.add(self._skip_duplicates)
         return card
 
     def _watch_card(self) -> QWidget:
@@ -216,6 +224,7 @@ class SettingsPage(QWidget):
         self._date_folders.set_checked(settings.use_date_folders)
         self._category_folders.set_checked(bool(settings.get("use_category_folders", True)))
         self._allow_browser_move.set_checked(settings.allow_move_from_browser_default)
+        self._skip_duplicates.set_checked(settings.skip_duplicate_content)
         self._watch_enabled.set_checked(settings.watch_enabled)
         self._watch_edit.setText(settings.watch_directory or self._controller.default_downloads_dir())
         self._poll_spin.setValue(settings.watch_poll_seconds)
@@ -241,6 +250,7 @@ class SettingsPage(QWidget):
             self._date_folders,
             self._category_folders,
             self._allow_browser_move,
+            self._skip_duplicates,
             self._watch_enabled,
             self._startup,
             self._minimize,

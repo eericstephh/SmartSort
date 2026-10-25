@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Callable
 
 from ..config.defaults import (
+    STATUS_CONTENT_DUPLICATE,
     STATUS_DUPLICATE,
     STATUS_FAILED,
     STATUS_ORGANIZED,
@@ -30,6 +31,7 @@ from ..storage.repositories import Repositories
 from .classifier import Classifier
 from .conflict_resolver import sanitize_filename
 from .fileops import MoveError, is_protected_location, is_within, safe_move
+from .hashing import sha256_file
 
 logger = logging.getLogger(__name__)
 
@@ -211,6 +213,66 @@ class Organizer:
         except OSError as exc:
             return OrganizeResult(STATUS_FAILED, "destination_unavailable", error=str(exc))
 
+        # -- content duplicate ---------------------------------------------
+        # Hashing is opt-in because it reads the whole file. When it is off the
+        # column simply stays empty and nothing below changes.
+        content_hash: str | None = None
+        if settings.skip_duplicate_content:
+            content_hash = sha256_file(source)
+            if content_hash:
+                existing = self._repos.operations.find_by_content_hash(content_hash)
+                # The row can outlive the file: the user may have deleted the
+                # earlier copy outside the app. Only a file that is really there
+                # counts as a duplicate.
+                if existing is not None and Path(existing.final_path).is_file():
+                    logger.info(
+                        "skipping %s: identical content already at %s",
+                        source,
+                        existing.final_path,
+                    )
+                    operation_id = self._repos.operations.add(
+                        origin=request.origin,
+                        category=plan.category,
+                        original_path=str(source),
+                        final_path="",
+                        status=STATUS_CONTENT_DUPLICATE,
+                        size_bytes=plan.size_bytes,
+                        download_id=request.download_id,
+                        completed_at=_iso(request.completed_at),
+                        message="content_already_exists",
+                        undo_state=UNDO_UNAVAILABLE,
+                        content_hash=content_hash,
+                        duplicate_of=existing.final_path,
+                    )
+                    # Mark the source as handled even though it did not move.
+                    # Without this the watcher would re-detect the same file on
+                    # every poll and write a history row each time.
+                    if dl_key:
+                        self._repos.processed.add(
+                            dl_key,
+                            kind="download",
+                            download_id=request.download_id,
+                            browser=request.browser,
+                            source_path=str(source),
+                            final_path="",
+                            operation_id=operation_id,
+                        )
+                    self._repos.processed.add(
+                        fs_key,
+                        kind="path",
+                        download_id=request.download_id,
+                        browser=request.browser,
+                        source_path=str(source),
+                        final_path="",
+                        operation_id=operation_id,
+                    )
+                    return OrganizeResult(
+                        STATUS_CONTENT_DUPLICATE,
+                        "content_already_exists",
+                        operation_id=operation_id,
+                        category=plan.category,
+                    )
+
         # -- execute -------------------------------------------------------
         warning: str | None = None
         try:
@@ -253,6 +315,7 @@ class Organizer:
             completed_at=_iso(request.completed_at),
             message=message,
             undo_state=UNDO_AVAILABLE if final_path.exists() else UNDO_UNAVAILABLE,
+            content_hash=content_hash,
         )
 
         if dl_key:

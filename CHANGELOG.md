@@ -4,6 +4,28 @@ All notable changes to SmartSort are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Content-based duplicate detection**, off by default. When enabled, every
+  download is hashed with SHA-256 before it moves and compared against the files
+  already sorted; an identical file is left where it is and recorded as
+  `content_duplicate`, with the path of the existing copy kept in the history.
+  A duplicate is only reported when the earlier file is still on disk, and an
+  undone operation stops counting. Hashing is skipped entirely while the setting
+  is off, so nothing gets slower for users who do not want it.
+- **Continuous integration.** The suite now runs on `windows-latest` for Python
+  3.10 and 3.13 on every push and pull request.
+- The About screen shows a link to the project page, which previously pointed at
+  a placeholder domain and was not displayed anywhere.
+
+### Fixed
+
+- `migrations.apply(conn, target=…)` applied migrations past the requested
+  target; the parameter only guarded against a database that was too new. A
+  caller asking for version 1 got version 2. Found by the new upgrade test.
+
 ## [1.0.0] — 2026-10-22
 
 First public release. Windows 10/11, 64-bit, no administrator rights required.

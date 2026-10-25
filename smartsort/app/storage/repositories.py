@@ -146,12 +146,15 @@ class OperationRepository:
         error: str | None = None,
         message: str | None = None,
         undo_state: str = "available",
+        content_hash: str | None = None,
+        duplicate_of: str | None = None,
     ) -> int:
         with self._db.transaction() as conn:
             cursor = conn.execute(
                 "INSERT INTO operations (download_id, origin, category, original_path,"
                 " final_path, size_bytes, completed_at, organized_at, status, error,"
-                " message, undo_state) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                " message, undo_state, content_hash, duplicate_of)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     download_id,
                     origin,
@@ -165,12 +168,31 @@ class OperationRepository:
                     error,
                     message,
                     undo_state,
+                    content_hash,
+                    duplicate_of,
                 ),
             )
             return int(cursor.lastrowid or 0)
 
     def get(self, operation_id: int) -> Operation | None:
         row = self._db.query_one("SELECT * FROM operations WHERE id = ?", (operation_id,))
+        return Operation.from_row(row) if row else None
+
+    def find_by_content_hash(self, content_hash: str) -> Operation | None:
+        """Return the newest organized operation that holds this content.
+
+        Undone rows are ignored: the file they described has been moved back to
+        the source folder, so the destination no longer contains it. The caller
+        must still confirm the recorded path exists — a row can outlive a file
+        the user deleted outside the app.
+        """
+        if not content_hash:
+            return None
+        row = self._db.query_one(
+            "SELECT * FROM operations WHERE content_hash = ? AND status = 'organized'"
+            " AND undo_state != 'undone' ORDER BY id DESC LIMIT 1",
+            (content_hash,),
+        )
         return Operation.from_row(row) if row else None
 
     def list_recent(self, limit: int = 20) -> list[Operation]:

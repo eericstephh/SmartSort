@@ -25,6 +25,7 @@ from ..config import paths
 from ..config.defaults import (
     APP_VERSION,
     PIPE_NAME,
+    STATUS_CONTENT_DUPLICATE,
     STATUS_DUPLICATE,
     STATUS_FAILED,
     STATUS_ORGANIZED,
@@ -373,7 +374,7 @@ class AppController(QObject):
 
             if result.status == STATUS_ORGANIZED:
                 organized += 1
-            elif result.status in (STATUS_SKIPPED, STATUS_DUPLICATE):
+            elif result.status in (STATUS_SKIPPED, STATUS_DUPLICATE, STATUS_CONTENT_DUPLICATE):
                 skipped += 1
             else:
                 failed += 1
@@ -516,7 +517,10 @@ class AppController(QObject):
 
 
 def _result_payload(result) -> dict[str, Any]:
-    payload: dict[str, Any] = {"ok": result.status in {STATUS_ORGANIZED, STATUS_SKIPPED, STATUS_DUPLICATE}}
+    payload: dict[str, Any] = {
+        "ok": result.status
+        in {STATUS_ORGANIZED, STATUS_SKIPPED, STATUS_DUPLICATE, STATUS_CONTENT_DUPLICATE}
+    }
     payload["status"] = result.status
     payload["message"] = result.message
     if result.final_path:

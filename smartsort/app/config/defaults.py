@@ -11,7 +11,7 @@ APP_NAME = "SmartSort"
 APP_VERSION = "1.0.0"
 APP_PUBLISHER = "SmartSort Project"
 APP_DESCRIPTION = "Local-first download organizer for Windows"
-APP_HOMEPAGE = "https://example.invalid/smartsort"
+APP_HOMEPAGE = "https://github.com/eericstephh/SmartSort"
 
 # Identifier used by the browser native messaging registry entries.
 NATIVE_HOST_NAME = "com.smartsort.host"
@@ -40,7 +40,7 @@ MAX_FILENAME_LENGTH = 255
 EXTENSION_ID_LENGTH = 32
 
 # Database schema version. Bump together with a new migration step.
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 OTHER_CATEGORY_ID = "other"
 
@@ -111,6 +111,11 @@ DEFAULT_SETTINGS: dict[str, object] = {
     # this policy allows it. When disabled, browser downloads are recorded but
     # left in place.
     "allow_move_from_browser_default": True,
+    # Compare the SHA-256 of every incoming file with the ones already in the
+    # destination and leave the copy alone when the content is identical. Off by
+    # default: it costs one full read of every download, and a user who has never
+    # re-downloaded the same file should not pay for it.
+    "skip_duplicate_content": False,
     # Fallback folder watching
     "watch_enabled": False,
     "watch_directory": "",
@@ -142,6 +147,9 @@ STATUS_ORGANIZED = "organized"
 STATUS_FAILED = "failed"
 STATUS_SKIPPED = "skipped"
 STATUS_DUPLICATE = "duplicate"
+# A file whose *content* already exists in the destination. Distinct from
+# STATUS_DUPLICATE, which means "this download was already processed".
+STATUS_CONTENT_DUPLICATE = "content_duplicate"
 STATUS_UNDONE = "undone"
 
 # Undo states.
