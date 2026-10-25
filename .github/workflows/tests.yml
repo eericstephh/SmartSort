@@ -23,22 +23,72 @@ jobs:
       matrix:
         python: ["3.10", "3.13"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
           cache: pip
           cache-dependency-path: requirements.txt
 
       - name: Install dependencies
+        shell: bash
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt pytest pytest-qt
+          set -o pipefail
+          python -m pip install --upgrade pip 2>&1 | tee install.log
+          python -m pip install -r requirements.txt pytest pytest-qt 2>&1 | tee -a install.log
+
+      - name: Show the environment
+        shell: bash
+        run: |
+          python -VV
+          python -c "import PySide6, pytest, pytestqt; print('PySide6', PySide6.__version__); print('pytest', pytest.__version__)"
 
       - name: Run the test suite
+        shell: bash
         env:
           # The suite creates real Qt widgets. A runner has no desktop, so the
           # offscreen platform plugin stands in for it.
           QT_QPA_PLATFORM: offscreen
-        run: python -m pytest -q
+        run: |
+          set -o pipefail
+          python -m pytest -q --tb=short 2>&1 | tee pytest.log
+
+      # The log of a failed job is only readable by someone logged in, so the
+      # failing tests are copied into the run summary where anyone can see them.
+      # This also has to explain a failure that happened before pytest ran,
+      # which is why the install log is included as a fallback.
+      - name: Summarise failures
+        if: failure()
+        shell: bash
+        run: |
+          {
+            echo "### Environment"
+            echo ""
+            echo '```'
+            python -VV 2>&1 || true
+            python -c "import PySide6; print('PySide6', PySide6.__version__)" 2>&1 || true
+            echo '```'
+            echo ""
+            if [ -f pytest.log ]; then
+              echo "### Failed tests"
+              echo ""
+              echo '```'
+              grep -E "^(FAILED|ERROR)" pytest.log | head -40 || true
+              echo '```'
+              echo ""
+              echo "### Tracebacks"
+              echo ""
+              echo '```'
+              sed -n '/=== FAILURES ===/,$p' pytest.log | head -160 || true
+              echo '```'
+            fi
+            if [ -f install.log ]; then
+              echo ""
+              echo "### Tail of the install log"
+              echo ""
+              echo '```'
+              tail -40 install.log || true
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
