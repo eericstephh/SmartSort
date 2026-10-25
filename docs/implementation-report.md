@@ -262,7 +262,7 @@ successful uninstall.
 ## 4. Tests executed and actual results
 
 ```
-312 passed in 30.85s
+342 passed in 31.73s
 ```
 
 Run with `.venv\Scripts\python.exe -m pytest -q`. Every filesystem test uses a

@@ -437,6 +437,35 @@ class AppController(QObject):
             self._ctx.repos.categories.update(cat_id, enabled=True, extensions=extensions)
         self._ctx.organizer.invalidate_classifier()
 
+    def add_category(self, name: str, extensions: list[str]) -> str:
+        """Create a user category and return its id. Raises CategoryError."""
+        category_id = self._ctx.repos.categories.create(name, extensions)
+        self._ctx.organizer.invalidate_classifier()
+        self.operations_changed.emit()
+        return category_id
+
+    def rename_category(self, category_id: str, name: str) -> None:
+        self._ctx.repos.categories.rename(category_id, name)
+        self._ctx.organizer.invalidate_classifier()
+        self.operations_changed.emit()
+
+    def delete_category(self, category_id: str) -> None:
+        self._ctx.repos.categories.delete(category_id)
+        self._ctx.organizer.invalidate_classifier()
+        self.operations_changed.emit()
+
+    def category_conflicts(
+        self, extensions: list[str], exclude_id: str = ""
+    ) -> dict[str, str]:
+        """Extensions in ``extensions`` that another category already wins."""
+        owners = self._ctx.repos.categories.extension_owners(exclude_id)
+        conflicts: dict[str, str] = {}
+        for raw in extensions:
+            ext = str(raw).strip().lower().lstrip("*").lstrip(".")
+            if ext and ext in owners:
+                conflicts[ext] = owners[ext]
+        return conflicts
+
     # -- diagnostics -------------------------------------------------------
     def browser_registration(self) -> dict[str, Any]:
         return {

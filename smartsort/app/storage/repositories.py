@@ -6,7 +6,9 @@ callers.
 
 from __future__ import annotations
 
+import hashlib
 import logging
+import re
 import sqlite3
 from datetime import datetime, timedelta, timezone
 from typing import Any, Iterable, Sequence
@@ -53,6 +55,71 @@ class SettingsRepository:
     def all(self) -> dict[str, Any]:
         rows = self._db.query("SELECT key, value FROM settings")
         return {row["key"]: loads(row["value"]) for row in rows}
+
+
+class CategoryError(ValueError):
+    """A category change the user has to correct.
+
+    Carries a short code that the UI translates, so the storage layer never owns
+    English prose.
+    """
+
+    def __init__(self, code: str) -> None:
+        super().__init__(code)
+        self.code = code
+
+
+# Names Windows refuses to use for a folder, even with an extension appended.
+_RESERVED_NAMES = {
+    "con", "prn", "aux", "nul",
+    "com1", "com2", "com3", "com4", "com5", "com6", "com7", "com8", "com9",
+    "lpt1", "lpt2", "lpt3", "lpt4", "lpt5", "lpt6", "lpt7", "lpt8", "lpt9",
+}
+_FORBIDDEN_NAME_CHARS = set('<>:"/\\|?*')
+
+MAX_CATEGORY_NAME = 40
+
+
+def validate_category_name(name: str, existing: Iterable[str] = ()) -> str:
+    """Return the tidied name, or raise :class:`CategoryError`.
+
+    The name becomes a folder on disk, so the Windows rules apply — "not empty"
+    is not enough.
+    """
+    cleaned = " ".join(str(name).split())
+    if not cleaned:
+        raise CategoryError("name_empty")
+    if len(cleaned) > MAX_CATEGORY_NAME:
+        raise CategoryError("name_too_long")
+    if any(ch in _FORBIDDEN_NAME_CHARS or ord(ch) < 32 for ch in cleaned):
+        raise CategoryError("name_invalid_chars")
+    if cleaned.endswith("."):
+        # Windows silently strips a trailing dot, so two names would collide.
+        raise CategoryError("name_invalid_chars")
+    if cleaned.lower() in _RESERVED_NAMES:
+        raise CategoryError("name_reserved")
+    if cleaned.lower() in {str(other).strip().lower() for other in existing}:
+        raise CategoryError("name_duplicate")
+    return cleaned
+
+
+def _slug(name: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+    if slug:
+        return slug[:32]
+    # A name with no Latin characters (Persian, for example) keeps a stable id
+    # derived from the text instead of collapsing to a generic one.
+    return "cat-" + hashlib.sha256(name.encode("utf-8")).hexdigest()[:8]
+
+
+def _unique_category_id(name: str, taken: set[str]) -> str:
+    base = _slug(name)
+    candidate = base
+    index = 2
+    while candidate in taken:
+        candidate = f"{base}-{index}"
+        index += 1
+    return candidate
 
 
 class CategoryRepository:
@@ -108,8 +175,64 @@ class CategoryRepository:
             f"UPDATE categories SET {', '.join(sets)} WHERE id = ?", tuple(params)
         )
 
+    def create(self, name: str, extensions: Iterable[str] = ()) -> str:
+        """Add a user category and return its id.
+
+        New categories are appended after the built-in ones, and the classifier
+        gives an extension to the first category that claims it — so a new
+        category can never silently take files away from a built-in one.
+        """
+        existing = self.list_all()
+        cleaned = validate_category_name(name, [c.name for c in existing])
+        category_id = _unique_category_id(cleaned, {c.id for c in existing})
+        order = max((c.sort_order for c in existing), default=-1) + 1
+        self._db.execute(
+            "INSERT INTO categories (id, name, enabled, extensions, sort_order, builtin)"
+            " VALUES (?, ?, 1, ?, ?, 0)",
+            (category_id, cleaned, ",".join(_normalise_extensions(extensions)), order),
+        )
+        return category_id
+
     def rename(self, category_id: str, name: str) -> None:
-        self._db.execute("UPDATE categories SET name = ? WHERE id = ?", (name, category_id))
+        """Rename a user category.
+
+        Built-in names are fixed: they are the folder names that already exist on
+        disk for every user who has run the app, and renaming one would split a
+        category across two folders.
+        """
+        category = self.get(category_id)
+        if category is None:
+            raise CategoryError("not_found")
+        if category.builtin:
+            raise CategoryError("builtin_protected")
+        others = [c.name for c in self.list_all() if c.id != category_id]
+        cleaned = validate_category_name(name, others)
+        self._db.execute(
+            "UPDATE categories SET name = ? WHERE id = ?", (cleaned, category_id)
+        )
+
+    def delete(self, category_id: str) -> None:
+        """Remove a user category. Files already sorted into its folder stay."""
+        category = self.get(category_id)
+        if category is None:
+            raise CategoryError("not_found")
+        if category.builtin:
+            raise CategoryError("builtin_protected")
+        self._db.execute("DELETE FROM categories WHERE id = ?", (category_id,))
+
+    def extension_owners(self, exclude_id: str = "") -> dict[str, str]:
+        """Map every claimed extension to the name of the category that wins it.
+
+        Mirrors the classifier: categories are visited in display order and the
+        first claim sticks, so this is what the user will actually see happen.
+        """
+        owners: dict[str, str] = {}
+        for category in self.list_all():
+            if not category.enabled or category.id == "other" or category.id == exclude_id:
+                continue
+            for ext in category.extensions:
+                owners.setdefault(ext.strip().lower().lstrip("."), category.name)
+        return owners
 
 
 def _normalise_extensions(extensions: Iterable[str]) -> list[str]:

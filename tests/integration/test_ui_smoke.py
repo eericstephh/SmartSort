@@ -127,3 +127,26 @@ def test_skip_duplicates_toggle_follows_the_stored_setting(window) -> None:
     controller.settings.set("skip_duplicate_content", True)
     page.load()
     assert page._skip_duplicates.is_checked() is True
+
+
+def test_categories_page_grows_when_a_category_is_added(window, qtbot) -> None:
+    main_window, controller = window
+    page = main_window._pages["categories"]
+    before = page._table.rowCount()
+
+    controller.add_category("Design", ["psd"])
+    page.reload()
+    qtbot.wait(20)
+
+    assert page._table.rowCount() == before + 1
+    # Built-in rows offer no rename or delete; the new row does.
+    assert page._table.cellWidget(0, 4) is None
+    assert page._table.cellWidget(page._table.rowCount() - 1, 4) is not None
+
+
+def test_controller_reports_extension_conflicts(window) -> None:
+    _main_window, controller = window
+    assert controller.category_conflicts(["png"]) == {"png": "Images"}
+    assert controller.category_conflicts(["psd"]) == {}
+    # A category never conflicts with itself.
+    assert controller.category_conflicts(["png"], exclude_id="images") == {}

@@ -15,6 +15,14 @@ All notable changes to SmartSort are documented here. The format follows
   A duplicate is only reported when the earlier file is still on disk, and an
   undone operation stops counting. Hashing is skipped entirely while the setting
   is off, so nothing gets slower for users who do not want it.
+- **User-defined categories.** The Rules & categories screen can now add a
+  category with its own name and extensions, and rename or delete the ones you
+  created. Names are validated against the Windows folder rules (reserved device
+  names, `<>:"/\|?*`, trailing dots, length), because the name becomes a folder.
+  Built-in categories stay fixed so files already sorted are never split across
+  two folders, and a new category is appended last — an extension that another
+  category already claims keeps going there, and the app says which one when
+  that happens.
 - **Continuous integration.** The suite now runs on `windows-latest` for Python
   3.10 and 3.13 on every push and pull request.
 - The About screen shows a link to the project page, which previously pointed at
