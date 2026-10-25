@@ -44,15 +44,21 @@ jobs:
           python -VV
           python -c "import PySide6, pytest, pytestqt; print('PySide6', PySide6.__version__); print('pytest', pytest.__version__)"
 
+      # PowerShell is the runner's own shell, so this avoids the MSYS layer that
+      # sat between pytest and the runner on the first attempt.
+      #
+      # The "pytest returned" line matters: if it is missing from the log, the
+      # interpreter died instead of exiting, which points at native teardown
+      # rather than at a test.
       - name: Run the test suite
-        shell: bash
         env:
-          # The suite creates real Qt widgets. A runner has no desktop, so the
-          # offscreen platform plugin stands in for it.
           QT_QPA_PLATFORM: offscreen
         run: |
-          set -o pipefail
-          python -m pytest -q --tb=short 2>&1 | tee pytest.log
+          python -m pytest -q --tb=short 2>&1 | Tee-Object -FilePath pytest.log
+          $code = $LASTEXITCODE
+          Write-Output "pytest returned $code"
+          "### pytest exit code`n`n``````n$code`n``````" | Out-File -Append -Encoding utf8 $env:GITHUB_STEP_SUMMARY
+          if ($code -ne 0) { exit $code }
 
       # The log of a failed job is only readable by someone logged in, so the
       # failing tests are copied into the run summary where anyone can see them.
