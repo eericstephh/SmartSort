@@ -32,6 +32,10 @@ All notable changes to SmartSort are documented here. The format follows
 
 ### Fixed
 
+- **The project link on the About screen was nearly invisible on the dark
+  theme.** An `<a>` tag with no colour is painted in Qt's default link blue,
+  which is meant for a white background. The label now takes its colour from
+  the palette and is rebuilt when the theme changes.
 - `migrations.apply(conn, target=…)` applied migrations past the requested
   target; the parameter only guarded against a database that was too new. A
   caller asking for version 1 got version 2. Found by the new upgrade test.

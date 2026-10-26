@@ -218,7 +218,14 @@ def sync_bundled_docs() -> None:
                 shutil.copy2(source, folder / name)
         docs_target = folder / "docs"
         if (PROJECT_ROOT / "docs").is_dir():
-            shutil.copytree(PROJECT_ROOT / "docs", docs_target, dirs_exist_ok=True)
+            # docs/media holds the tutorial video; it belongs in the repository,
+            # not inside every installed copy of the application.
+            shutil.copytree(
+                PROJECT_ROOT / "docs",
+                docs_target,
+                dirs_exist_ok=True,
+                ignore=shutil.ignore_patterns("media"),
+            )
 
 
 def release_notes() -> str:

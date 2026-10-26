@@ -73,10 +73,11 @@ class AboutPage(QWidget):
         # tell them where this copy came from.
         project_row = QHBoxLayout()
         project_row.addWidget(QLabel(f"{t('about.project_page')}:"), 0)
-        self._project_link = QLabel(f'<a href="{APP_HOMEPAGE}">{APP_HOMEPAGE}</a>')
+        self._project_link = QLabel()
         self._project_link.setOpenExternalLinks(True)
         self._project_link.setTextInteractionFlags(Qt.TextBrowserInteraction)
         self._project_link.setWordWrap(True)
+        self._set_project_link()
         project_row.addWidget(self._project_link, 1)
         card.add_layout(project_row)
         self._data_dir_label = MutedLabel(str(self._controller.data_dir))
@@ -292,8 +293,21 @@ class AboutPage(QWidget):
         QMessageBox.information(self, t("about.backup"), t("about.backup_done", path=str(path)))
 
     # -- theming -----------------------------------------------------------
+    def _set_project_link(self) -> None:
+        """Colour the link from the palette.
+
+        An ``<a>`` tag without a colour is painted with Qt's default link
+        colour, which is a dark blue that disappears on the dark theme's
+        background. The label is rebuilt on every theme change instead.
+        """
+        colour = self._palette.accent if self._palette is not None else "#2563eb"
+        self._project_link.setText(
+            f'<a style="color:{colour};" href="{APP_HOMEPAGE}">{APP_HOMEPAGE}</a>'
+        )
+
     def apply_palette(self, palette: Palette) -> None:
         self._palette = palette
+        self._set_project_link()
         self.refresh()
 
     def retranslate(self) -> None:

@@ -262,7 +262,7 @@ successful uninstall.
 ## 4. Tests executed and actual results
 
 ```
-344 passed in 29.12s
+345 passed in 57.77s
 ```
 
 Run with `.venv\Scripts\python.exe -m pytest -q`. Every filesystem test uses a
@@ -284,7 +284,7 @@ temporary directory; the real Downloads folder is never touched.
 | `security/test_diagnostics_redaction.py` | 5 | `%USERPROFILE%` substitution in logs, JSON and the exported DB copy; the live DB is never modified; token ACL is user-only |
 | `integration/test_native_messaging.py` | 16 | Framing round-trip, truncated frame, zero-length, oversized, real pipe connection, real host subprocess, app-not-running error, no pickle on the wire, connection cap |
 | `integration/test_browser_flow.py` | 10 | Controller end-to-end with mocked browser events, settings changes, history queries, extension allow-list enforcement (omitted ID, wrong ID, registered ID) |
-| `integration/test_ui_smoke.py` | 7 | Every window and page constructs, navigates and renders |
+| `integration/test_ui_smoke.py` | 8 | Every window and page constructs, navigates and renders |
 | `integration/test_cli.py` | 7 | `--version`, `--print-paths`, `--data-dir` regression, launcher resolution, `--scan` preview moves nothing, `--scan` without a destination fails clearly, registration pins the allow-list |
 | `unit/test_folder_scanner.py` | 18 | Read-only scanning, temp/hidden/empty/in-destination/protected filters, recursive walk, newest-first order, preview matches the real move |
 | `integration/test_scan_dialog.py` | 6 | Dialog population, pre-selection, filter, select-none, batch organize, idempotence |

@@ -19,13 +19,24 @@ from PyInstaller.utils.hooks import collect_submodules
 
 PROJECT_ROOT = Path(SPECPATH).resolve()
 
+# docs/ is bundled for offline reading, but docs/media holds the tutorial video,
+# which is a download-and-share asset: shipping it inside the application would
+# add ~5 MB twice (the app folder and _internal) for something nobody opens from
+# there. Every other documentation file is still included.
+DOCS_DIR = PROJECT_ROOT / "docs"
+DOCS_DATAS = [
+    (str(path), str(path.parent.relative_to(PROJECT_ROOT)))
+    for path in sorted(DOCS_DIR.rglob("*"))
+    if path.is_file() and "media" not in path.relative_to(DOCS_DIR).parts
+]
+
 datas = [
     (str(PROJECT_ROOT / "assets" / "smartsort.ico"), "assets"),
     (str(PROJECT_ROOT / "browser_extension"), "browser_extension"),
     (str(PROJECT_ROOT / "LICENSE"), "."),
     (str(PROJECT_ROOT / "README.md"), "."),
     (str(PROJECT_ROOT / "CHANGELOG.md"), "."),
-    (str(PROJECT_ROOT / "docs"), "docs"),
+    *DOCS_DATAS,
 ]
 
 hiddenimports = [

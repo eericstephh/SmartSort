@@ -10,6 +10,8 @@ completed browser downloads into date and file-type folders.
 
 ![SmartSort dashboard](docs/screens/01-dashboard.png)
 
+[Watch the 54-second tour](docs/media/smartsort-tutorial.mp4) · [Installation](docs/installation.md) · [Security](SECURITY.md)
+
 ```
 E:\SmartSort\
     2026-10-21\
@@ -279,7 +281,7 @@ executed, and what is still unproven is in
 ```
 
 The suite never touches your real Downloads folder: every filesystem test uses
-a temporary directory. All 344 tests pass.
+a temporary directory. All 345 tests pass.
 
 What cannot be automated — loading the unpacked extension into a real browser
 and completing a real download — is written up as a step-by-step checklist in

@@ -9,20 +9,23 @@ a user sees without touching the real application database.
 from __future__ import annotations
 
 import os
+import shutil
 import sys
 import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-# Offscreen keeps the script usable in a headless CI run, but it has no font
-# database, so text renders as boxes. For documentation screenshots run it with
-# QT_QPA_PLATFORM=windows to get real font rendering.
+# Offscreen keeps the script usable without a display. It has no font database
+# of its own, so the fonts are registered explicitly below; without that every
+# glyph is drawn as a box.
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from PySide6.QtWidgets import QApplication  # noqa: E402
+
+import _offscreen  # noqa: E402  (lives next to this script)
 
 from smartsort.app.bootstrap import create_context  # noqa: E402
 from smartsort.app.config import paths  # noqa: E402
@@ -48,7 +51,7 @@ def seed(context, destination: Path) -> None:
             origin="browser",
             category=category,
             original_path=f"C:\\Users\\user\\{source}",
-            final_path=str(destination / "2026-10-21" / category.title() / name)
+            final_path=str(destination / datetime.now().strftime("%Y-%m-%d") / category.title() / name)
             if status == "organized"
             else "",
             status=status,
@@ -91,11 +94,11 @@ def main(argv: list[str]) -> int:
     output = Path(argv[0]) if argv else PROJECT_ROOT / "docs" / "screens"
     output.mkdir(parents=True, exist_ok=True)
 
-    # A fresh scratch directory per run: never delete an existing one, so the
-    # script is safe to run repeatedly and cannot touch anything outside
-    # .pytest-tmp/.
-    scratch = PROJECT_ROOT / ".pytest-tmp" / f"screens-{os.getpid()}-{int(time.time())}"
-    scratch.mkdir(parents=True, exist_ok=True)
+    # The folder name appears in the screenshots (destination folder, About
+    # page, status bar), so it must not sit under the user profile: a path like
+    # C:\Users\<name>\... would publish a real account name. Each run gets its
+    # own uniquely named child, and only that child is removed afterwards.
+    scratch = _offscreen.neutral_scratch("screens", clean=True)
     data_dir = scratch / "data"
     destination = scratch / "SmartSort"
     destination.mkdir(parents=True, exist_ok=True)
@@ -104,6 +107,7 @@ def main(argv: list[str]) -> int:
     os.environ["SMARTSORT_DATA_DIR"] = str(data_dir)
 
     app = QApplication.instance() or QApplication([])
+    print(f"registered {_offscreen.register_fonts()} font families")
 
     from smartsort.app.ui.controller import AppController
     from smartsort.app.ui.main_window import MainWindow
@@ -148,6 +152,7 @@ def main(argv: list[str]) -> int:
 
     window.quit_application()
     context.close()
+    shutil.rmtree(scratch, ignore_errors=True)
     return 0
 
 

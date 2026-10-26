@@ -118,6 +118,25 @@ def test_about_page_shows_the_project_link(window) -> None:
     assert page._project_link.openExternalLinks() is True
 
 
+def test_project_link_is_readable_in_both_themes(window) -> None:
+    """An <a> tag with no colour gets Qt's default link blue.
+
+    That blue is unreadable on the dark background, so the label has to take
+    its colour from the palette and be rebuilt when the theme changes.
+    """
+    from smartsort.app.ui.theme import DARK, LIGHT
+
+    main_window, _controller = window
+    page = main_window._pages["about"]
+
+    page.apply_palette(DARK)
+    assert DARK.accent in page._project_link.text()
+
+    page.apply_palette(LIGHT)
+    assert LIGHT.accent in page._project_link.text()
+    assert DARK.accent not in page._project_link.text()
+
+
 def test_skip_duplicates_toggle_follows_the_stored_setting(window) -> None:
     main_window, controller = window
     page = main_window._pages["settings"]
