@@ -10,7 +10,7 @@ completed browser downloads into date and file-type folders.
 
 ![SmartSort dashboard](docs/screens/01-dashboard.png)
 
-[Watch the 54-second tour](docs/media/smartsort-tutorial.mp4) · [Installation](docs/installation.md) · [Security](SECURITY.md)
+[Watch the 54-second tour](docs/media/smartsort-tutorial-en.mp4) · [Persian version](docs/media/smartsort-tutorial-fa.mp4) · [Installation](docs/installation.md) · [Security](SECURITY.md)
 
 ```
 E:\SmartSort\

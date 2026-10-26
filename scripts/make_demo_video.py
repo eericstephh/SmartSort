@@ -1,4 +1,4 @@
-"""Render a tutorial video from the real SmartSort interface.
+"""Render the tutorial video from the real SmartSort interface.
 
 Nothing in this script is a mock-up: every frame is a grab of the actual
 ``MainWindow``. The window is pointed at a throwaway data directory that this
@@ -6,6 +6,10 @@ script fills with invented file names and empty placeholder files, so no real
 download, folder path or history row can reach the video.
 
     .venv\\Scripts\\python.exe scripts\\make_demo_video.py --ffmpeg <path to ffmpeg.exe>
+
+``--lang fa|en|all`` picks the language; each one is written to
+``docs/media/smartsort-tutorial-<lang>.mp4``. Both versions share the same
+scenes and differ only in the words on the slides.
 
 The ffmpeg binary is not vendored; ``imageio-ffmpeg`` ships one, and the path
 can also come from the FFMPEG environment variable.
@@ -39,7 +43,7 @@ FPS = 30
 # put a real account name on screen. See _offscreen.neutral_scratch.
 FRAMES = PROJECT_ROOT / ".pytest-tmp" / "demo-video" / "slides"
 SEGMENTS = PROJECT_ROOT / ".pytest-tmp" / "demo-video" / "segments"
-OUTPUT = PROJECT_ROOT / "docs" / "media" / "smartsort-tutorial.mp4"
+MEDIA_DIR = PROJECT_ROOT / "docs" / "media"
 
 # Invented downloads. The names are deliberately generic, and the files
 # themselves are a few bytes each - the sizes below are display metadata only.
@@ -54,9 +58,14 @@ SAMPLES = (
 
 PERSIAN_DIGITS = str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹")
 
+# Language code -> the number style used on the slides. Persian keeps Persian
+# digits; English keeps Latin ones.
+DIGITS = {"fa": PERSIAN_DIGITS, "en": None}
 
-def fa(value: int | str) -> str:
-    return str(value).translate(PERSIAN_DIGITS)
+
+def number(value: int | str, lang: str) -> str:
+    table = DIGITS.get(lang)
+    return str(value).translate(table) if table else str(value)
 
 
 def log(message: str) -> None:
@@ -64,7 +73,7 @@ def log(message: str) -> None:
 
 
 # -- demo data -------------------------------------------------------------
-def seed(data_dir: Path, root: Path) -> tuple[Path, Path]:
+def seed(data_dir: Path, root: Path, lang: str) -> tuple[Path, Path]:
     """Fill a fresh data directory with invented history.
 
     Returns the (downloads, destination) folders, both under ``root`` so that no
@@ -79,7 +88,7 @@ def seed(data_dir: Path, root: Path) -> tuple[Path, Path]:
 
     context = create_context(data_dir, setup_logs=False)
     try:
-        context.settings.set("language", "fa")
+        context.settings.set("language", lang)
         context.settings.set("theme", "dark")
         context.settings.set("destination_dir", str(destination))
         context.settings.set("auto_organize", True)
@@ -159,7 +168,7 @@ def register_fonts() -> None:
         raise SystemExit("no fonts could be registered; text would render as boxes")
 
 
-def build_window(data_dir: Path):
+def build_window(data_dir: Path, lang: str):
     from PySide6.QtCore import Qt
     from PySide6.QtWidgets import QApplication
 
@@ -170,8 +179,8 @@ def build_window(data_dir: Path):
 
     app = QApplication.instance() or QApplication([])
     log(f"registered {_offscreen.register_fonts()} font families")
-    set_language("fa")
-    app.setLayoutDirection(Qt.RightToLeft)
+    set_language(lang)
+    app.setLayoutDirection(Qt.RightToLeft if is_rtl(lang) else Qt.LeftToRight)
 
     context = create_context(data_dir, setup_logs=False)
     controller = AppController(context)
@@ -233,6 +242,8 @@ def make_slide(
     shot=None,
     step: int | None = None,
     total: int | None = None,
+    rtl: bool = True,
+    lang: str = "fa",
 ):
     from PySide6.QtCore import Qt
     from PySide6.QtGui import QPixmap
@@ -241,7 +252,7 @@ def make_slide(
     slide = QWidget()
     slide.setObjectName("slide")
     slide.setStyleSheet(SLIDE_STYLE)
-    slide.setLayoutDirection(Qt.RightToLeft)
+    slide.setLayoutDirection(Qt.RightToLeft if rtl else Qt.LeftToRight)
     slide.setFixedSize(*CANVAS)
 
     layout = QVBoxLayout(slide)
@@ -254,7 +265,7 @@ def make_slide(
     title_label.setObjectName("title")
     header.addWidget(title_label, 1)
     if step is not None and total is not None:
-        step_label = QLabel(f"{fa(step)} / {fa(total)}")
+        step_label = QLabel(f"{number(step, lang)} / {number(total, lang)}")
         step_label.setObjectName("stepLabel")
         step_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         header.addWidget(step_label)
@@ -276,6 +287,7 @@ def make_slide(
     caption_label = QLabel(caption)
     caption_label.setObjectName("caption")
     caption_label.setWordWrap(True)
+    caption_label.setAlignment(_start_alignment(slide, caption) | Qt.AlignVCenter)
     layout.addWidget(caption_label)
 
     footer = QLabel("SmartSort 1.1.0")
@@ -286,7 +298,7 @@ def make_slide(
     return slide
 
 
-def make_cover():
+def make_cover(cover: tuple[str, str, str], rtl: bool):
     from PySide6.QtCore import Qt
     from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
@@ -299,7 +311,7 @@ def make_cover():
         + "#sub { color:#7fb2ef; font-family:'Segoe UI','Tahoma'; font-size:38px; }"
         + "#hint { color:#93a7c4; font-family:'Segoe UI','Tahoma'; font-size:28px; }"
     )
-    slide.setLayoutDirection(Qt.RightToLeft)
+    slide.setLayoutDirection(Qt.RightToLeft if rtl else Qt.LeftToRight)
     slide.setFixedSize(*CANVAS)
 
     layout = QVBoxLayout(slide)
@@ -310,11 +322,7 @@ def make_cover():
     # Centred explicitly: a Latin word and a Persian line in the same column
     # otherwise align to opposite edges, because Qt follows each text's own
     # direction rather than the widget's.
-    for text, name in (
-        ("SmartSort", "big"),
-        ("دانلودها، مرتب.", "sub"),
-        ("راهنمای نصب و استفاده", "hint"),
-    ):
+    for text, name in zip(cover, ("big", "sub", "hint")):
         label = QLabel(text)
         label.setObjectName(name)
         label.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
@@ -324,14 +332,16 @@ def make_cover():
     return slide
 
 
-def _visual_right(widget, text: str = ""):
-    """Return the flag that puts ``text`` against the visual right edge.
+def _start_alignment(widget, text: str = ""):
+    """Return the flag that puts ``text`` against the starting edge.
 
     Qt mirrors AlignLeft/AlignRight for right-to-left *paragraphs* only, so the
-    flag that lands on the right depends on the text as well as the widget: a
-    Persian line needs AlignLeft in a Persian layout, while a Latin-only line
-    (the project URL) needs AlignRight. Choosing from the text keeps both edges
-    aligned instead of scattering them across the slide.
+    flag that lands on the leading edge depends on the text as well as the
+    widget: a Persian line needs AlignLeft in a Persian layout, while a
+    Latin-only line (the project URL) needs AlignRight in that same layout.
+    Choosing from the text keeps every line on the same edge instead of
+    scattering them across the slide. In an English layout both cases reduce to
+    AlignLeft, which is what the caller expects.
     """
     from PySide6.QtCore import Qt
 
@@ -341,7 +351,7 @@ def _visual_right(widget, text: str = ""):
     return Qt.AlignRight if rtl_text else Qt.AlignLeft
 
 
-def make_plain(title: str, lines: list[str]):
+def make_plain(title: str, lines, *, rtl: bool = True):
     from PySide6.QtCore import Qt
     from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
@@ -351,7 +361,7 @@ def make_plain(title: str, lines: list[str]):
         SLIDE_STYLE
         + "#line { color:#b7c7de; font-family:'Segoe UI','Tahoma'; font-size:32px; }"
     )
-    slide.setLayoutDirection(Qt.RightToLeft)
+    slide.setLayoutDirection(Qt.RightToLeft if rtl else Qt.LeftToRight)
     slide.setFixedSize(*CANVAS)
 
     layout = QVBoxLayout(slide)
@@ -361,7 +371,7 @@ def make_plain(title: str, lines: list[str]):
 
     heading = QLabel(title)
     heading.setObjectName("title")
-    heading.setAlignment(_visual_right(slide, title) | Qt.AlignVCenter)
+    heading.setAlignment(_start_alignment(slide, title) | Qt.AlignVCenter)
     layout.addWidget(heading)
     layout.addSpacing(10)
 
@@ -371,7 +381,7 @@ def make_plain(title: str, lines: list[str]):
         label.setWordWrap(True)
         # Set explicitly: a line that starts with a Latin word (a URL, for
         # instance) would otherwise be laid out against the other edge.
-        label.setAlignment(_visual_right(slide, line) | Qt.AlignVCenter)
+        label.setAlignment(_start_alignment(slide, line) | Qt.AlignVCenter)
         layout.addWidget(label)
 
     layout.addStretch(1)
@@ -443,72 +453,186 @@ def find_ffmpeg(explicit: str | None) -> Path:
 
 
 # -- scenes ----------------------------------------------------------------
-SCENES = (
-    {
-        "page": "dashboard",
-        "title": "داشبورد",
-        "caption": "وضعیت مرتب‌سازی، آمار امروز، پوشهٔ مقصد و آخرین فایل‌های مرتب‌شده.",
-        "seconds": 5.5,
+# One script, two languages. Everything that ends up on a slide lives here, so
+# the two versions cannot drift apart in structure - only in wording.
+TEXT: dict[str, dict] = {
+    "fa": {
+        "file": "smartsort-tutorial-fa.mp4",
+        "cover": ("SmartSort", "دانلودها، مرتب.", "راهنمای نصب و استفاده"),
+        "footer": "SmartSort 1.1.0",
+        "scenes": (
+            {
+                "page": "dashboard",
+                "title": "داشبورد",
+                "caption": "وضعیت مرتب‌سازی، آمار امروز، پوشهٔ مقصد و آخرین فایل‌های مرتب‌شده.",
+                "seconds": 5.5,
+            },
+            {
+                "page": "settings",
+                "title": "تنظیمات — پوشهٔ مقصد",
+                "caption": "پوشهٔ مقصد و مرتب‌سازی خودکار را از همین‌جا تعیین می‌کنی. پوشهٔ تاریخ و دسته هم قابل خاموش کردن است.",
+                "seconds": 6.5,
+            },
+            {
+                "page": "settings",
+                "title": "تشخیص فایل تکراری",
+                "caption": "با روشن کردن این گزینه، محتوای هر دانلود با فایل‌های قبلی مقایسه می‌شود؛ فایل یکسان سر جایش می‌ماند.",
+                "highlight": "_skip_duplicates",
+                "seconds": 7.0,
+            },
+            {
+                "page": "categories",
+                "title": "دسته‌های دلخواه",
+                "caption": "هر دسته‌ای با نام و پسوندهای خودت بساز؛ نام دسته همان نام پوشه است، پس طبق قواعد ویندوز بررسی می‌شود.",
+                "highlight": "_table",
+                "seconds": 7.0,
+            },
+            {
+                "page": "history",
+                "title": "تاریخچه و بازگردانی",
+                "caption": "هر جابه‌جایی ثبت می‌شود. فایلی که اشتباه رفت، با یک دکمه به جای اولش برمی‌گردد.",
+                "highlight": "_table",
+                "seconds": 7.0,
+            },
+            {
+                "page": "about",
+                "title": "درباره",
+                "caption": "نسخهٔ برنامه و لینک صفحهٔ پروژه.",
+                "seconds": 4.5,
+            },
+        ),
+        "extension": (
+            "افزونهٔ مرورگر",
+            (
+                "۱. از داشبورد، پوشهٔ افزونه را باز کن.",
+                "۲. در کروم یا اج، صفحهٔ افزونه‌ها را باز کن و «Load unpacked» را بزن.",
+                "۳. همان پوشه را انتخاب کن و افزونه را پین کن.",
+                "از آن پس هر دانلود کامل‌شده به برنامه گزارش می‌شود.",
+            ),
+        ),
+        "outro": (
+            "آماده‌ای؟",
+            (
+                "نسخهٔ ۱.۱٫۰ — ویندوز ۱۰ و ۱۱، ۶۴ بیتی",
+                "بدون نیاز به دسترسی مدیر",
+                "github.com/eericstephh/SmartSort",
+            ),
+        ),
     },
-    {
-        "page": "settings",
-        "title": "تنظیمات — پوشهٔ مقصد",
-        "caption": "پوشهٔ مقصد و مرتب‌سازی خودکار را از همین‌جا تعیین می‌کنی. پوشهٔ تاریخ و دسته هم قابل خاموش کردن است.",
-        "seconds": 6.5,
+    "en": {
+        "file": "smartsort-tutorial-en.mp4",
+        "cover": ("SmartSort", "Downloads, organized.", "Install and use"),
+        "footer": "SmartSort 1.1.0",
+        "scenes": (
+            {
+                "page": "dashboard",
+                "title": "Dashboard",
+                "caption": "Sorting status, today's numbers, the destination folder, and the files sorted most recently.",
+                "seconds": 5.5,
+            },
+            {
+                "page": "settings",
+                "title": "Settings — destination",
+                "caption": "Pick the destination folder and switch automatic sorting on or off. The date and category folders can be turned off too.",
+                "seconds": 6.5,
+            },
+            {
+                "page": "settings",
+                "title": "Duplicate detection",
+                "caption": "With this on, the content of every download is compared with what you already have. An identical file stays where it is.",
+                "highlight": "_skip_duplicates",
+                "seconds": 7.0,
+            },
+            {
+                "page": "categories",
+                "title": "Your own categories",
+                "caption": "Add a category with a name and extensions of your own. The name becomes the folder, so it is checked against the Windows rules.",
+                "highlight": "_table",
+                "seconds": 7.0,
+            },
+            {
+                "page": "history",
+                "title": "History and undo",
+                "caption": "Every move is recorded. A file that went to the wrong place goes back where it came from in one click.",
+                "highlight": "_table",
+                "seconds": 7.0,
+            },
+            {
+                "page": "about",
+                "title": "About",
+                "caption": "The version, and a link to the project page.",
+                "seconds": 4.5,
+            },
+        ),
+        "extension": (
+            "The browser extension",
+            (
+                "1. Open the extension folder from the dashboard.",
+                "2. In Chrome or Edge, open the extensions page and choose \u201cLoad unpacked\u201d.",
+                "3. Select that folder and pin the extension.",
+                "From then on, every finished download is reported to the app.",
+            ),
+        ),
+        "outro": (
+            "Ready when you are",
+            (
+                "Version 1.1.0 — Windows 10 and 11, 64-bit",
+                "No administrator rights required",
+                "github.com/eericstephh/SmartSort",
+            ),
+        ),
     },
-    {
-        "page": "settings",
-        "title": "تشخیص فایل تکراری",
-        "caption": "با روشن کردن این گزینه، محتوای هر دانلود با فایل‌های قبلی مقایسه می‌شود؛ فایل یکسان سر جایش می‌ماند.",
-        "highlight": "_skip_duplicates",
-        "seconds": 7.0,
-    },
-    {
-        "page": "categories",
-        "title": "دسته‌های دلخواه",
-        "caption": "هر دسته‌ای با نام و پسوندهای خودت بساز؛ نام دسته همان نام پوشه است، پس طبق قواعد ویندوز بررسی می‌شود.",
-        "highlight": "_table",
-        "seconds": 7.0,
-    },
-    {
-        "page": "history",
-        "title": "تاریخچه و بازگردانی",
-        "caption": "هر جابه‌جایی ثبت می‌شود. فایلی که اشتباه رفت، با یک دکمه به جای اولش برمی‌گردد.",
-        "highlight": "_table",
-        "seconds": 7.0,
-    },
-    {
-        "page": "about",
-        "title": "درباره",
-        "caption": "نسخهٔ برنامه و لینک صفحهٔ پروژه.",
-        "seconds": 4.5,
-    },
-)
+}
+
+
+def is_rtl(lang: str) -> bool:
+    return lang == "fa"
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--ffmpeg", default=None)
     parser.add_argument("--keep-data", action="store_true")
+    parser.add_argument(
+        "--lang",
+        default="all",
+        choices=("fa", "en", "all"),
+        help="which language(s) to render; each gets its own mp4",
+    )
     args = parser.parse_args()
 
+    languages = ("fa", "en") if args.lang == "all" else (args.lang,)
     FRAMES.mkdir(parents=True, exist_ok=True)
+    MEDIA_DIR.mkdir(parents=True, exist_ok=True)
+    ffmpeg = find_ffmpeg(args.ffmpeg)
+
+    for lang in languages:
+        render(lang, ffmpeg, keep_data=args.keep_data)
+    return 0
+
+
+def render(lang: str, ffmpeg: Path, *, keep_data: bool) -> Path:
+    text = TEXT[lang]
+    rtl = is_rtl(lang)
+    output = MEDIA_DIR / text["file"]
+    log(f"--- {lang} ---")
 
     scratch = _offscreen.neutral_scratch("video", clean=True)
     data_dir = scratch / "data"
     log(f"seeding a throwaway data directory at {scratch}")
-    seed(data_dir, scratch)
+    seed(data_dir, scratch, lang)
 
-    app, context, controller, window = build_window(data_dir)
+    app, context, controller, window = build_window(data_dir, lang)
     try:
         slides: list[tuple[Path, float]] = []
 
-        cover = make_cover()
-        cover_path = FRAMES / "00-cover.png"
+        cover = make_cover(text["cover"], rtl)
+        cover_path = FRAMES / f"{lang}-00-cover.png"
         cover.grab().save(str(cover_path))
         slides.append((cover_path, 4.0))
 
-        for index, scene in enumerate(SCENES, start=1):
+        scenes = text["scenes"]
+        for index, scene in enumerate(scenes, start=1):
             shot = grab_page(
                 app, window, scene["page"], highlight=scene.get("highlight")
             )
@@ -517,35 +641,22 @@ def main() -> int:
                 caption=scene["caption"],
                 shot=shot,
                 step=index,
-                total=len(SCENES),
+                total=len(scenes),
+                rtl=rtl,
+                lang=lang,
             )
-            path = FRAMES / f"{index:02d}-{scene['page']}.png"
+            path = FRAMES / f"{lang}-{index:02d}-{scene['page']}.png"
             slide.grab().save(str(path))
             slides.append((path, scene["seconds"]))
             log(f"captured {scene['page']}")
 
-        steps = make_plain(
-            "افزونهٔ مرورگر",
-            [
-                "۱. از داشبورد، پوشهٔ افزونه را باز کن.",
-                "۲. در کروم یا اج، صفحهٔ افزونه‌ها را باز کن و «Load unpacked» را بزن.",
-                "۳. همان پوشه را انتخاب کن و افزونه را پین کن.",
-                "از آن پس هر دانلود کامل‌شده به برنامه گزارش می‌شود.",
-            ],
-        )
-        steps_path = FRAMES / "90-extension.png"
+        steps = make_plain(*text["extension"], rtl=rtl)
+        steps_path = FRAMES / f"{lang}-90-extension.png"
         steps.grab().save(str(steps_path))
         slides.append((steps_path, 7.0))
 
-        outro = make_plain(
-            "آماده‌ای؟",
-            [
-                "نسخهٔ ۱.۱٫۰ — ویندوز ۱۰ و ۱۱، ۶۴ بیتی",
-                "بدون نیاز به دسترسی مدیر",
-                "github.com/eericstephh/SmartSort",
-            ],
-        )
-        outro_path = FRAMES / "99-outro.png"
+        outro = make_plain(*text["outro"], rtl=rtl)
+        outro_path = FRAMES / f"{lang}-99-outro.png"
         outro.grab().save(str(outro_path))
         slides.append((outro_path, 5.0))
     finally:
@@ -553,17 +664,16 @@ def main() -> int:
         app.processEvents()
         context.close()
 
-    ffmpeg = find_ffmpeg(args.ffmpeg)
-    log(f"encoding with {ffmpeg.name}")
-    encode(slides, ffmpeg, OUTPUT)
+    log(f"encoding {output.name} with {ffmpeg.name}")
+    encode(slides, ffmpeg, output)
 
-    if not args.keep_data:
+    if not keep_data:
         shutil.rmtree(scratch, ignore_errors=True)
         log(f"removed {scratch}")
 
-    size = OUTPUT.stat().st_size
-    log(f"wrote {OUTPUT} ({size / 1024 / 1024:.1f} MB)")
-    return 0
+    size = output.stat().st_size
+    log(f"wrote {output} ({size / 1024 / 1024:.1f} MB)")
+    return output
 
 
 if __name__ == "__main__":
